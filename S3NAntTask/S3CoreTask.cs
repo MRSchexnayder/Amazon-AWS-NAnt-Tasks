@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using Amazon.S3;
 using Amazon.S3.Model;
 using NAnt.Core;
@@ -46,6 +47,10 @@ namespace S3NAntTask
 
         #endregion
 
+        public string LogHeader { get; set; }
+        public string sourceFileMD5 { get; set; }
+        public string targetFileMD5 { get; set; }
+
         /// <summary>Get an Amazon S3 client. Be sure to dispose of the client when done</summary>
         public AmazonS3 Client
         {
@@ -80,6 +85,108 @@ namespace S3NAntTask
             return false;
         }
 
+        /// <summary>Determine if our file already exists in the specified S3 bucket</summary>
+        /// <returns>True if the file already exists in the specified bucket</returns>
+        public bool S3FileExists(string fileKey)
+        {
+            bool retVal = false;
+
+            using (Client)
+            {
+                try
+                {
+                    ListObjectsRequest request = new ListObjectsRequest
+                    {
+                        BucketName = BucketName
+                    };
+
+                    using (var response = Client.ListObjects(request))
+                    {
+                        foreach (var file in response.S3Objects)
+                        {
+                            //Project.Log(Level.Info, "File: " + file.Key);
+                            if (file.Key.Equals(fileKey))
+                            {
+                                retVal = true;
+                            }
+                        }
+                    }
+                }
+                catch (AmazonS3Exception ex)
+                {
+                    ShowError(ex);
+                }
+            }
+            return retVal;
+        }
+
+        /// <summary>Get the MD5 sum from a local file (on disk)</summary>
+        /// <returns>Returns the string representation of the MD5 sum</returns>
+        public String GetLocalFileMD5Sum(string filename)
+        {
+            using (MD5 md5 = MD5.Create())
+            {
+                using (Stream stream = File.OpenRead(filename))
+                {
+                    return BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower();
+                }
+            }
+        }
+
+        /// <summary>Get the MD5 sum from file in an S3 bucket</summary>
+        /// <returns>Returns the string representation of the MD5 sum</returns>
+        public String GetS3FileMD5Sum(string fileKey)
+        {
+            string etag = "not found";
+            using (Client)
+            {
+                try
+                {
+                    ListObjectsRequest request = new ListObjectsRequest
+                    {
+                        BucketName = BucketName
+                    };
+
+                    do
+                    {
+                        using (ListObjectsResponse response = Client.ListObjects(request))
+                        {
+                            foreach (S3Object entry in response.S3Objects)
+                            {
+                                if (entry.Key.Equals(fileKey))
+                                {
+                                    etag = entry.ETag.Replace("\"", "");
+                                }
+                            }
+                            // If response is truncated, set the marker to get the next 
+                            // set of keys.
+                            if (response.IsTruncated)
+                            {
+                                request.Marker = response.NextMarker;
+                            }
+                            else
+                            {
+                                request = null;
+                            }
+                        }
+
+                    } while (request != null);
+                }
+
+                catch (AmazonS3Exception ex)
+                {
+                    ShowError(ex);
+                }
+
+                return etag;
+            }
+        }
+
+        public string MakeActionLabel(string Action) 
+        {
+            return "     [S3 " + Action + "]";
+        }
+        
         /// <summary>Format and display an exception</summary>
         /// <param name="ex">Exception to display</param>
         public void ShowError(AmazonS3Exception ex)

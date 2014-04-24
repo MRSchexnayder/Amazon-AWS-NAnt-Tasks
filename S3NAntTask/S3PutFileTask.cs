@@ -15,50 +15,87 @@ namespace S3NAntTask
         /// <summary>Execute the NAnt task</summary>
         protected override void ExecuteTask() 
         {
-            // Ensure the configured bucket exists
+
+            LogHeader = MakeActionLabel("Upload");
+
+            //// Ensure the configured bucket exists
             if (!BucketExists(BucketName))
             {
-                Project.Log(Level.Error, "[ERROR] S3 Bucket '{0}' not found!", BucketName);
+                Project.Log(Level.Error, "{0} ERROR! S3 Bucket '{1}' not found!", LogHeader, BucketName);
                 return;
             }
 
             // Ensure the specified file exists
             if (!File.Exists(FilePath)) 
             {
-                Project.Log(Level.Error, "[ERROR] Local file '{0}' doesn't exist!", FilePath);
+                Project.Log(Level.Error, "{0} ERROR! Local file '{1}' doesn't exist!", LogHeader, FilePath);
                 return;
             }
-
-            // Ensure the overwrite is false and the file doesn't already exist in the specified bucket
-            if (!Overwrite && FileExists(FileName))
-                return;
-
-            // Send the file to S3
-            using (Client) 
-            {
-                try 
-                {
-                    Project.Log(Level.Info, "Uploading file: {0}", FileName);
-                    PutObjectRequest request = new PutObjectRequest 
-                    {
-                        Key = FileName,
-                        BucketName = BucketName,
-                        FilePath = FilePath,
-                        Timeout = timeout
-                    };
-
-                    var response = Client.PutObject(request);
-
-                }
-                catch (AmazonS3Exception ex) 
-                {
-                    ShowError(ex);
-                }
-            }
-            if (!FileExists(FileName))
-                Project.Log(Level.Error, "Upload FAILED!");
             else
-                Project.Log(Level.Info, "Upload successful!");
+            {
+                sourceFileMD5 = GetLocalFileMD5Sum(FilePath);
+                //Project.Log(Level.Info, "Filename : " + FilePath);
+                //Project.Log(Level.Info, "MD5 Sum  : " + FileMD5Sum);
+            }
+
+            // Ensure that the file doesn't exist or that if it does, the overwrite flag is set to true
+            if (!S3FileExists(Key) || (S3FileExists(Key) && Overwrite))
+            {
+
+                // Send the file to S3
+                using (Client)
+                {
+                    try
+                    {
+                        Project.Log(Level.Info, "{0} File: {1}", LogHeader, FileName);
+                        PutObjectRequest request = new PutObjectRequest
+                        {
+                            Key = FileName,
+                            BucketName = BucketName,
+                            FilePath = FilePath,
+                            Timeout = timeout
+                        };
+
+                        PutObjectResponse response = Client.PutObject(request);
+
+                        targetFileMD5 = response.ETag.Replace("\"", "");
+
+                        //Project.Log(Level.Info, "{0} ETag data: {1}", LogHeader, etag);
+
+                        if (S3FileExists(FileName))
+                        {
+                            if (sourceFileMD5 == targetFileMD5)
+                            {
+                                Project.Log(Level.Info, "{0} Upload successful!", LogHeader);
+                                //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                                //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                            }
+                            else
+                            {
+                                Project.Log(Level.Error, "{0} Upload corrupted! MD5 Sum mismatch!", LogHeader);
+                                //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                                //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                            }
+                        }
+                        else
+                        {
+                            Project.Log(Level.Error, "{0} Upload FAILED!", LogHeader);
+                        }
+
+
+                    }
+                    catch (AmazonS3Exception ex)
+                    {
+                        ShowError(ex);
+                    }
+                }
+
+            }
+            else
+            {
+                Project.Log(Level.Error, "{0} ERROR! Target file exists and overwrite attribute NOT set to TRUE!", LogHeader);
+            }
+
         }
 
     }

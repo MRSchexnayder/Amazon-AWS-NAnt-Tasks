@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using Amazon.S3;
 using Amazon.S3.Model;
 using NAnt.Core;
@@ -42,42 +43,6 @@ namespace S3NAntTask
         { 
         
         }
-
-        /// <summary>Determine if our file already exists in the specified S3 bucket</summary>
-        /// <returns>True if the file already exists in the specified bucket</returns>
-        public bool FileExists(string fileKey)
-        {
-            bool retVal = false;
-
-            using (Client)
-            {
-                try
-                {
-                    ListObjectsRequest request = new ListObjectsRequest
-                    {
-                        BucketName = BucketName
-                    };
-
-                    using (var response = Client.ListObjects(request))
-                    {
-                        foreach (var file in response.S3Objects)
-                        {
-                            //Project.Log(Level.Info, "File: " + file.Key);
-                            if (file.Key.Equals(fileKey))
-                            {
-                                retVal = true;
-                            }
-                        }
-                    }
-                }
-                catch (AmazonS3Exception ex)
-                {
-                    ShowError(ex);
-                }
-            }
-            return retVal;
-        }
-
 
     }
 }

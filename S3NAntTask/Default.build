@@ -2,15 +2,15 @@
 <project name="Amazon S3 NAnt Task" default="test-all">
     <loadtasks assembly="..\build\S3NAntTask.dll" />
 
-    <property name="AWS_ACCESS_Key" value="" />
-    <property name="AWS_SECRET_Key" value="" />
+    <property name="AWS_ACCESS_Key" value="AKIAJEJFSNWS3Q7XJJ7A" />
+    <property name="AWS_SECRET_Key" value="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" />
     
     <property name="current.directory"	value="${directory::get-current-directory()}" />
-    <property name="bucket"             value="" />
-    <property name="file"               value="file.zip" />
-    <property name="file1"              value="file1.zip" />
-    <property name="Outputfile"         value="file2.zip" />
-    <property name="TargetFile"         value='test/file3.zip' />
+    <property name="bucket"             value="S3NantTask_TestBucket" />
+    <property name="file"               value="file.txt" />
+    <property name="file1"              value="file1.txt" />
+    <property name="Outputfile"         value="file2.txt" />
+    <property name="TargetFile"         value='test/file3.txt' />
 
 
     <target name="put" description="Test the Amazon S3 NAnt upload task">

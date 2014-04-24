@@ -11,34 +11,32 @@ namespace S3NAntTask
     [TaskName("amazon-s3-CreateBucket")]
     public class S3CreateBucketTask : S3CoreBucketTask
     {
-
         protected override void ExecuteTask() 
         {
+            LogHeader = MakeActionLabel("Create Bucket");
             if (!BucketExists(BucketName))
-                CreateBucket();
-            else
-                Project.Log(Level.Error, "Bucket: {0}, already exists!", BucketName);
-        }
-
-        /// <summary>Create the configured bucket</summary>
-        public void CreateBucket()
-        {
-            Project.Log(Level.Info, "Creating S3 bucket: {0}", BucketName);
-            using (Client)
             {
-                try
+                Project.Log(Level.Info, "{0} {1}", LogHeader, BucketName);
+                using (Client)
                 {
-                    var request = new PutBucketRequest
+                    try
                     {
-                        BucketName = BucketName,
-                        BucketRegion = _region
-                    };
-                    Client.PutBucket(request);
+                        var request = new PutBucketRequest
+                        {
+                            BucketName = BucketName,
+                            BucketRegion = _region
+                        };
+                        Client.PutBucket(request);
+                    }
+                    catch (AmazonS3Exception ex)
+                    {
+                        ShowError(ex);
+                    }
                 }
-                catch (AmazonS3Exception ex)
-                {
-                    ShowError(ex);
-                }
+            }
+            else
+            {
+                Project.Log(Level.Error, "{0} Bucket: {1}, already exists!", LogHeader, BucketName);
             }
         }
  

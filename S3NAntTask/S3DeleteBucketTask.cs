@@ -15,12 +15,14 @@ namespace S3NAntTask
     {
         protected override void ExecuteTask()
         {
-            Project.Log(Level.Info, "Deleting S3 bucket: {0}", BucketName);
+            LogHeader = MakeActionLabel("Delete Bucket");
+
+            Project.Log(Level.Info, "{0} {1}", LogHeader, BucketName);
 
             /// Check to see if the bucket exists before we try to delete it. 
             if (!BucketExists(BucketName))
             {
-                Project.Log(Level.Warning, "Bucket: {0} not found!", BucketName);
+                Project.Log(Level.Warning, "{0} ERROR! Bucket: {1} not found!", LogHeader, BucketName);
                 return;
             }
             else 
@@ -38,6 +40,11 @@ namespace S3NAntTask
                         ShowError(ex);
                     }
                 }
+            }
+
+            if (BucketExists(BucketName))
+            {
+                Project.Log(Level.Warning, "{0} ERROR! Bucket delete failed!", LogHeader);
             }
             
         }

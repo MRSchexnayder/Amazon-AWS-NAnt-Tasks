@@ -45,25 +45,26 @@ namespace S3NAntTask
         /// <summary>Execute the NAnt task</summary>
         protected override void ExecuteTask()
         {
+            LogHeader = MakeActionLabel("Copy");
 
             // Ensure the configured bucket exists
             if (!BucketExists(BucketName))
             {
-                Project.Log(Level.Error, "[ERROR] S3 Bucket '{0}' not found!", BucketName);
+                Project.Log(Level.Error, "{0} ERROR! S3 Bucket '{1}' not found!", LogHeader, BucketName);
                 return;
             }
 
             if (!BucketExists(GetTargetBucket))
             {
-                Project.Log(Level.Error, "[ERROR] S3 Bucket '{0}' not found!", GetTargetBucket);
+                Project.Log(Level.Error, "{0} ERROR! S3 Bucket '{1}' not found!", LogHeader, GetTargetBucket);
                 return;
             }
 
             try
             {
-                Project.Log(Level.Info, "Copying: \r\n" + 
-                    "From: " + BucketName + ": " + sourceKey + "\r\n" +
-                    "to:   " + GetTargetBucket + ": " + targetKey);
+                Project.Log(Level.Info,  
+                    LogHeader + " From: " + BucketName + ": " + sourceKey + "\r\n" +
+                    LogHeader + " to:   " + GetTargetBucket + ": " + targetKey);
 
                 CopyObjectRequest request = new CopyObjectRequest
                 {
@@ -73,50 +74,37 @@ namespace S3NAntTask
                     DestinationKey = targetKey
                 };
                 CopyObjectResponse response = Client.CopyObject(request);
+
+                targetFileMD5 = response.ETag.Replace("\"", "");
+                sourceFileMD5 = GetS3FileMD5Sum(sourceKey);
+
+                if (!S3FileExists(targetKey))
+                {
+                    Project.Log(Level.Error, "{0} ERROR! Copy FAILED!", LogHeader);
+                }
+                else
+                {
+                    if (sourceFileMD5 == targetFileMD5)
+                    {
+                        Project.Log(Level.Info, "{0} Copy successful!", LogHeader);
+                        //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                        //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                    }
+                    else
+                    {
+                        Project.Log(Level.Error, "{0} Copy corrupted! MD5 Sum mismatch!", LogHeader);
+                        //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                        //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                    }
+                
+                }
             }
             catch (AmazonS3Exception ex)
             {
-                Project.Log(Level.Error, "[ERROR] {0}: {1} \r\n{2}", ex.StatusCode, ex.Message, ex.InnerException);
+                Project.Log(Level.Error, "{0} ERROR! {1}: {2} \r\n" + LogHeader + "{3}", LogHeader, ex.StatusCode, ex.Message, ex.InnerException);
                 return;
             }
-
-            if (!FileExists(targetKey))
-                Project.Log(Level.Error, "Copy FAILED!");
-            else
-                Project.Log(Level.Info, "Copy successful!");
         
-        }
-
-        /// <summary>Determine if our file already exists in the specified S3 bucket</summary>
-        /// <returns>True if the file already exists in the specified bucket</returns>
-        public bool FileExists(string fileKey)
-        {
-            using (Client)
-            {
-                try
-                {
-                    ListObjectsRequest request = new ListObjectsRequest
-                    {
-                        BucketName = BucketName
-                    };
-
-                    using (var response = Client.ListObjects(request))
-                    {
-                        foreach (var file in response.S3Objects)
-                        {
-                            if (file.Key.Equals(fileKey))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                catch (AmazonS3Exception ex)
-                {
-                    ShowError(ex);
-                }
-            }
-            return false;
         }
 
     }

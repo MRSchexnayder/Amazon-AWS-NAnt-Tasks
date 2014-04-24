@@ -16,17 +16,19 @@ namespace S3NAntTask
         /// <summary>Execute the NAnt task</summary>
         protected override void ExecuteTask()
         {
-            // Ensure the configured bucket exists
+            LogHeader = MakeActionLabel("Delete");
+
+            //// Ensure the configured bucket exists
             if (!BucketExists(BucketName))
             {
-                Project.Log(Level.Error, "[ERROR] S3 Bucket: {0}, not found!", BucketName);
+                Project.Log(Level.Error, "{0} ERROR! S3 Bucket '{1}' not found!", LogHeader, BucketName);
                 return;
             }
 
             // Ensure the file exists
-            if (!FileExists(FilePath))
+            if (!S3FileExists(FilePath))
             {
-                Project.Log(Level.Error, "File not found {0}", FilePath);
+                Project.Log(Level.Error, "{0} ERROR! File not found {1}", LogHeader, FilePath);
                 return;
             }
             else
@@ -36,7 +38,7 @@ namespace S3NAntTask
                 {
                     try
                     {
-                        Project.Log(Level.Info, "Deleting file: {0}", FilePath);
+                        Project.Log(Level.Info, "{0} File: {1}", LogHeader, FilePath);
                         DeleteObjectRequest request = new DeleteObjectRequest
                         {
                             Key = FilePath,
@@ -45,16 +47,17 @@ namespace S3NAntTask
 
                         var response = Client.DeleteObject(request);
 
+                        if (S3FileExists(FilePath))
+                            Project.Log(Level.Error, "{0} ERROR! File delete FAILED!", LogHeader);
+                        else
+                            Project.Log(Level.Info, "{0} File deleted.", LogHeader);
+
                     }
                     catch (AmazonS3Exception ex)
                     {
                         ShowError(ex);
                     }
                 }
-                if (FileExists(FilePath))
-                    Project.Log(Level.Error, "File delete FAILED!");
-                else
-                    Project.Log(Level.Info, "File deleted.");
 
             }
         }

@@ -26,16 +26,18 @@ namespace S3NAntTask
         /// <summary>Execute the NAnt task</summary>
         protected override void ExecuteTask()
         {
+            LogHeader = MakeActionLabel("Delete");
+
             // Ensure the configured bucket exists
             if (!BucketExists(BucketName))
             {
-                Project.Log(Level.Error, "[ERROR] S3 Bucket: {0}, not found!", BucketName);
+                Project.Log(Level.Error, "{0} ERROR! S3 Bucket: {1}, not found!", LogHeader, BucketName);
                 return;
             }
 
             deleteRequest.BucketName = BucketName;
 
-            FindKeys(BucketName, deleteRequest, SearchString, Client);
+            FindKeys(BucketName, deleteRequest, SearchString, Client, LogHeader);
 
             // Delete the file from S3
             if (numKeys > 0)
@@ -48,7 +50,7 @@ namespace S3NAntTask
                     try
                     {
                         DeleteObjectsResponse response = Client.DeleteObjects(deleteRequest);
-                        Project.Log(Level.Info, "Successfully deleted {0} files", response.DeletedObjects.Count);
+                        Project.Log(Level.Info, "{0} Successfully deleted {1} files", LogHeader, response.DeletedObjects.Count);
 
                     }
                     catch (DeleteObjectsException ex)
@@ -61,18 +63,18 @@ namespace S3NAntTask
                     }
                     catch (Exception ex)
                     {
-                        Project.Log(Level.Error, "ERROR: " + ex.Message);
+                        Project.Log(Level.Error, "{0} ERROR: {1}", LogHeader, ex.Message);
                     }
                 }
             }
             else
             {
-                Project.Log(Level.Info, "Bucket contains no files with the specified search string: {0}", SearchString);
+                Project.Log(Level.Info, "{0} Bucket contains no files with the specified search string: {1}", LogHeader, SearchString);
             }
 
         }
 
-        private void FindKeys(string BucketName, DeleteObjectsRequest deleteRequest, string SearchString, AmazonS3 Client)
+        private void FindKeys(string BucketName, DeleteObjectsRequest deleteRequest, string SearchString, AmazonS3 Client, string LogHeader)
         {
             ListObjectsRequest request = new ListObjectsRequest
             {
@@ -89,7 +91,7 @@ namespace S3NAntTask
                     {
                         if (entry.Key.Contains(SearchString))
                         {
-                            Project.Log(Level.Info, "Deleting file: {0}", entry.Key);
+                            Project.Log(Level.Info, "{0} Deleting file: {1}", LogHeader, entry.Key);
                             deleteRequest.AddKey(entry.Key, null);
                             numKeys++;
                         }
