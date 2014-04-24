@@ -87,14 +87,12 @@ namespace S3NAntTask
                     if (sourceFileMD5 == targetFileMD5)
                     {
                         Project.Log(Level.Info, "{0} Copy successful!", LogHeader);
-                        //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
-                        //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
                     }
                     else
                     {
                         Project.Log(Level.Error, "{0} Copy corrupted! MD5 Sum mismatch!", LogHeader);
-                        //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
-                        //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                        Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                        Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
                     }
                 
                 }

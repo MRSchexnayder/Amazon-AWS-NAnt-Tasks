@@ -182,6 +182,8 @@ namespace S3NAntTask
             }
         }
 
+        /// <summary>Creating formatting for proper log messages in NAnt</summary>
+        /// <returns>Returns the string that proceeds any messages from the task</returns>
         public string MakeActionLabel(string Action) 
         {
             return "     [S3 " + Action + "]";

@@ -34,8 +34,6 @@ namespace S3NAntTask
             else
             {
                 sourceFileMD5 = GetLocalFileMD5Sum(FilePath);
-                //Project.Log(Level.Info, "Filename : " + FilePath);
-                //Project.Log(Level.Info, "MD5 Sum  : " + FileMD5Sum);
             }
 
             // Ensure that the file doesn't exist or that if it does, the overwrite flag is set to true
@@ -60,21 +58,17 @@ namespace S3NAntTask
 
                         targetFileMD5 = response.ETag.Replace("\"", "");
 
-                        //Project.Log(Level.Info, "{0} ETag data: {1}", LogHeader, etag);
-
                         if (S3FileExists(FileName))
                         {
                             if (sourceFileMD5 == targetFileMD5)
                             {
                                 Project.Log(Level.Info, "{0} Upload successful!", LogHeader);
-                                //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
-                                //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
                             }
                             else
                             {
                                 Project.Log(Level.Error, "{0} Upload corrupted! MD5 Sum mismatch!", LogHeader);
-                                //Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
-                                //Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
+                                Project.Log(Level.Info, "{0} Expected: {1}", LogHeader, sourceFileMD5);
+                                Project.Log(Level.Info, "{0} Actual  : {1}", LogHeader, targetFileMD5);
                             }
                         }
                         else
